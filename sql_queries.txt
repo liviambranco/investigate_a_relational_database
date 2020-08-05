@@ -1,0 +1,168 @@
+QUESTION 1 SET 1
+How does the number of rentals of family-friendly movies compare to the movies in other categories?
+
+SELECT DISTINCT
+
+    (title),
+
+    COUNT(rental_id) OVER (PARTITION BY title) AS rental_count,
+
+    name
+
+FROM (
+
+    SELECT
+
+        c.name AS name,
+
+        fc.category_id AS category_id,
+
+        f.title AS title,
+
+        r.rental_id AS rental_id
+
+    FROM
+
+        category c
+
+        JOIN film_category fc ON c.category_id = fc.category_id
+
+        JOIN film f ON f.film_id = fc.film_id
+
+        JOIN inventory i ON i.film_id = f.film_id
+
+        JOIN rental r ON i.inventory_id = r.inventory_id) sub
+
+WHERE
+
+    name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')
+
+ORDER BY
+
+    name;
+
+QUESTION 2 SET 1
+How the length of rental duration of the family-friendly movies compares to the duration that all movies are rented for?
+
+SELECT
+
+    title,
+
+    name,
+
+    rental_duration,
+
+    NTILE(4) OVER (ORDER BY rental_duration) AS standard_quartile
+
+FROM (
+
+    SELECT
+
+        f.title AS title,
+
+        c.name AS name,
+
+        f.rental_duration AS rental_duration
+
+    FROM
+        category c
+
+        JOIN film_category fc ON c.category_id = fc.category_id
+
+        JOIN film f ON f.film_id = fc.film_id) rental_duration_tab
+
+WHERE
+
+    name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')
+
+ORDER BY
+
+    rental_duration;
+
+
+QUESTION 1 SET 2
+How stores 1 and 2 compare in their count of rental orders during every month for all the years we have data for?
+
+SELECT
+
+    EXTRACT(month FROM DATE_TRUNC('month', r.rental_date)) AS rental_month,
+
+    EXTRACT(year FROM DATE_TRUNC('year', r.rental_date)) AS rental_year,
+
+    s.store_id AS store_id,
+
+    COUNT(*) AS count_rentals
+
+FROM
+
+    rental r
+
+    JOIN staff st ON r.staff_id = st.staff_id
+
+    JOIN store s ON st.store_id = s.store_id
+
+GROUP BY
+
+    3,
+
+    2,
+
+    1
+
+ORDER BY
+
+    count_rentals DESC;
+
+
+QUESTION 2 SET 2
+Who were our top 10 paying customers? During 2007, what was the amount of the monthly payments?
+
+WITH top_10_customers AS (
+
+    SELECT
+
+        customer_id
+
+    FROM
+
+        payment p
+
+    GROUP BY
+
+        customer_id
+
+    ORDER BY
+
+        SUM(amount) DESC
+
+    LIMIT 10
+)
+
+SELECT
+
+    DATE_TRUNC('month', payment_date) AS pay_mon,
+
+    first_name || ' ' || last_name AS fullname,
+
+    COUNT(*) AS pay_countpermon,
+
+    SUM(amount) AS pay_amount
+
+FROM
+    customer c
+
+    JOIN top_10_customers ON c.customer_id = top_10_customers.customer_id
+
+    JOIN payment p ON top_10_customers.customer_id = p.customer_id
+
+GROUP BY
+
+    1,
+
+    2
+
+ORDER BY
+
+    fullname,
+
+    pay_mon;
